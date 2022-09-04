@@ -21,6 +21,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 #
+readonly SCRIPT_DIR="$(dirname ${BASH_SOURCE[0]})"
+pushd $SCRIPT_DIR &> /dev/null
 
 REPO_NAME="itba-so-tp1-grupo11"
 VERSION="1.0"
@@ -36,3 +38,5 @@ if [ $? -eq 0 ]; then
 else
     echo -e "\e[31m\e[1mBuild failed.\e[0m"
 fi
+
+popd &> /dev/null
