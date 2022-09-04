@@ -21,6 +21,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 #
+readonly SCRIPT_DIR="$(dirname ${BASH_SOURCE[0]})"
+pushd $SCRIPT_DIR &> /dev/null
 
 echo -e "\e[34m\e[1mCppCheck\e[0m"
 
@@ -30,7 +32,7 @@ cppcheck \
     --force \
     --inconclusive \
     --suppress=missingIncludeSystem \
-    . > cppcheck_out.log
+    "../src" > cppcheck_out.log
 
 echo -en "\e[32m\e[1mDone.\e[0m"
 echo " See 'cppcheck_out.log'"
@@ -53,8 +55,10 @@ echo -e "\e[34m\e[1mValgrind\e[0m"
 
 valgrind \
     --leak-check=yes \
-    ./tree.elf . > valgrind_out.log
+    "./../bin/tp1-grupo11.elf" . > valgrind_out.log
 
 echo -en "\e[32m\e[1mDone.\e[0m"
 echo " See 'valgrind_out.log'"
+
+popd &> /dev/null
 
