@@ -15,7 +15,7 @@
 
 char *open_shared_mem(char *name, size_t shm_len)
 {
-    return NULL;
+        return NULL;
 }
 
 void close_shared_mem(char *shm, char *name, size_t shm_len)
