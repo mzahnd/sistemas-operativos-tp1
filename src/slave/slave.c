@@ -1,15 +1,15 @@
 #define _XOPEN_SOURCE 500
 
-#define MAX_COMMAND_LENGTH 1024
-#define MAX_COMMAND_OUTPUT_LENGTH 128
-#define COMMAND_STR "md5sum"
-#define COMMAND_PARSER "sed -r 's/[[:blank:]]+.*$/ - File Name:&/g'"
-
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define MAX_COMMAND_LENGTH 1024
+#define MAX_COMMAND_OUTPUT_LENGTH 128
+#define COMMAND_STR "md5sum"
+#define COMMAND_PARSER "sed -r 's/[[:blank:]]+.*$/ - File Name:&/g'"
 
 void do_task(char *file_name);
 void wait_more_tasks();
