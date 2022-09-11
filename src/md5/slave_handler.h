@@ -9,11 +9,12 @@
  *                    Zahnd, M. E.
  */
 
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef SLAVE_HANDLER_H
+#define SLAVE_HANDLER_H
 
 #define SLAVES 2
 
+#include <stdio.h>
 #include <semaphore.h>
 
 typedef struct slave {
@@ -41,12 +42,7 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
 void send_files(slave *slaves, int total_slaves, int files_per_slave,
                 char *const files[], struct TASK_MANAGER *task_mgmt,
                 struct VIEW_SHARED *view_mgmt);
-int send_files_to_slave(slave *slave, char *const files[],
-                        struct TASK_MANAGER *task_mgmt);
-int read_output_from_slave(FILE *output, slave *slave, char *buffer,
-                           ssize_t len, struct TASK_MANAGER *task_mgmt,
-                           struct VIEW_SHARED *view_mgmt);
 int close_fds(slave *slaves, size_t n);
 int kill_slaves(slave *slaves, size_t n);
 
-#endif
+#endif /* SLAVE_HANDLER_H */

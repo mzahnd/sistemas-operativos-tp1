@@ -11,10 +11,15 @@
 #ifndef SHARED_H
 #define SHARED_H 1
 
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+#define MIN(x, y) ((x) > (y) ? (y) : (x))
+
 #define STDIN 0
 #define STDOUT 1
 
 #define SEM_NAME "stallman_ninjas"
 #define SHARED_MEM_NAME "torvalds_nunchucks"
+
+#define OUTPUT_FILE "resultado.txt"
 
 #endif /* SHARED_H */
