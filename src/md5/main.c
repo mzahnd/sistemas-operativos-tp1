@@ -12,6 +12,7 @@
 
 #define BUFF_MEM_SIZE 1024
 #define SHM_SIZE 65536
+#define SLEEP_TIME 2
 
 int main(int argc, char **argv){
         if(argc < 2){
@@ -33,7 +34,7 @@ int main(int argc, char **argv){
         char * shm = open_shared_mem("shared_mem", SHM_SIZE);
         sem_t * sem = open_sem("semaphore");
 
-        sleep(2);       //DEBE esperar 2 segundos a que aparezca un proceso vista, si lo hace le comparte el buffer de llegada
+        sleep(SLEEP_TIME);       //DEBE esperar 2 segundos a que aparezca un proceso vista, si lo hace le comparte el buffer de llegada
 
         create_slaves(slaves, total_slaves, (char **) argv);
 
@@ -112,6 +113,21 @@ void killSlaves(slave * slaves, int total_slaves){
     }
 }
 
-void sendFiles(slave * slaves, int total_slaves, char * const argv[], int totalTasks) {
+void sendFiles(slave * slaves, int total_slaves, int files_per_slave, char * const argv[], int totalTasks) {
+        int tasksSent = 0;
+        int tasksFinished = 0;
+
+        for(int currentTask=0, i=1; currentTask < (files_per_slave * total_slaves); currentTask++, i++) {
+                char fileSent[BUFF_MEM_SIZE] = {0};
+                strcat(fileSent, argv[i]);
+                strcat(fileSent, "\n\0");
+
+                if(write(slaves[currentTask % total_slaves].out, fileSent, strlen(fileSent)) == NULL) {
+                        errorHandler("Error writing in fdPath");
+                }
+
+                tasksSent++;
+                slaves[currentTask % total_slaves].done_tasks++;
+        }
 
 }
