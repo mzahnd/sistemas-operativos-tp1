@@ -23,6 +23,7 @@ int main(int argc, char **argv){
         int assigned_tasks = 0; 
         int done_tasks = 0;
         int total_slaves = min(tasks, SLAVES);
+        int files_per_slave = (tasks > total_slaves * 2)? 2 : 1;
 
         slave slaves[total_slaves];
         
@@ -37,10 +38,12 @@ int main(int argc, char **argv){
         sleep(SLEEP_TIME);       //DEBE esperar 2 segundos a que aparezca un proceso vista, si lo hace le comparte el buffer de llegada
 
         create_slaves(slaves, total_slaves, (char **) argv);
+        
+        //enviar files a los esclavos
+        send_files(slaves, total_slaves, files_per_slave, (char **) argv, tasks);
 
-        //faltaria la funcion sendFiles -> enviar files a los esclavos
-
-        killSlaves(slaves, total_slaves);
+        close_fds(slaves, total_slaves);
+        kill_slaves(slaves, total_slaves);
 
         close_shared_mem(shm, "shared_mem", SHM_SIZE);
         close_sem(sem);
@@ -49,7 +52,7 @@ int main(int argc, char **argv){
         return 0;
 }
 
-//DEBE iniciar los procesos esclavos
+//Debe iniciar los procesos esclavos
 void create_slaves(slave * slaves, int total_slaves, char * const argv[]){
 
         for(int i = 0; i < total_slaves; i++){
@@ -98,22 +101,7 @@ void create_slaves(slave * slaves, int total_slaves, char * const argv[]){
         
 }
 
-void killSlaves(slave * slaves, int total_slaves){
-
-    for(int i = 0; i < total_slaves; i++) {
-
-        if(close(slaves[i].in) == -1) {
-            perror("Error closing read end");
-        }
-
-        if(close(slaves[i].out) == -1) {
-            perror("Error closing write end");
-        }
-
-    }
-}
-
-void sendFiles(slave * slaves, int total_slaves, int files_per_slave, char * const argv[], int totalTasks) {
+void send_files(slave * slaves, int total_slaves, int files_per_slave, char * const argv[], int totalTasks) {
         int tasksSent = 0;
         int tasksFinished = 0;
 
@@ -130,4 +118,31 @@ void sendFiles(slave * slaves, int total_slaves, int files_per_slave, char * con
                 slaves[currentTask % total_slaves].done_tasks++;
         }
 
+}
+
+void close_fds(slave slaves[], int dim) {
+	for (int i = 0; i < dim; i++) {
+		if (close(slaves[i].in) == -1) {
+			exit_error("ERROR closing stdin fd");
+		}
+
+		if (close(slaves[i].out) == -1) {
+			exit_error("ERROR close stdout fd");
+		}
+	}
+}
+
+void kill_slaves(slave * slaves, int total_slaves){
+
+    for(int i = 0; i < total_slaves; i++) {
+
+        if(close(slaves[i].in) == -1) {
+            perror("Error closing read end");
+        }
+
+        if(close(slaves[i].out) == -1) {
+            perror("Error closing write end");
+        }
+
+    }
 }
