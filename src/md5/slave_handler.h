@@ -19,8 +19,8 @@
 
 typedef struct slave {
         pid_t pid;
-        int in;
-        int out;
+        int fd_stdin;
+        int fd_stdout;
         int remaining_tasks;
 } slave;
 
@@ -35,14 +35,14 @@ struct VIEW_SHARED {
 
         char *shm;
         size_t shm_len;
+        size_t shm_offset;
 };
 
 void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                    struct TASK_MANAGER *task_mgmt);
-void send_files(slave *slaves, int total_slaves, int files_per_slave,
+void send_files(slave *slaves, int total_slaves,
                 char *const files[], struct TASK_MANAGER *task_mgmt,
                 struct VIEW_SHARED *view_mgmt);
-int close_fds(slave *slaves, size_t n);
 int kill_slaves(slave *slaves, size_t n);
 
 #endif /* SLAVE_HANDLER_H */

@@ -16,15 +16,14 @@
 
 #include "../../include/shared.h"
 #include "../util/semaphore.h"
-#include "../util/shared_mem.h"
 #include "slave_handler.h"
 
 #define SLAVE_PATH "./slave"
 #define FILES_PER_SLAVE 2
 
-#define SLEEP_TIME 3
+#define SLEEP_TIME 5
 
-#define BUFF_MEM_SIZE 1024
+#define BUFFER_SIZE 1024
 
 enum fd_rw { FD_READ = 0, FD_WRITE, N_FD_RW };
 
@@ -87,6 +86,7 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                         }
 
                         // Create argv for execv
+                        // 2 = SLAVE_PATH + '\0'
                         size_t argc =
                                 2 +
                                 (total_slaves > SLAVES ? FILES_PER_SLAVE : 1);
@@ -97,7 +97,7 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                         }
 
                         argv[0] = strdup(SLAVE_PATH);
-                        for (size_t j = 1; j < argc + 1; ++j) {
+                        for (size_t j = 1; j < argc - 1; ++j) {
                                 argv[j] = files[task_mgmt->assigned++];
                         }
                         argv[argc - 1] = NULL;
@@ -113,8 +113,8 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                         free(argv);
                 } else { //master
                         slaves[i].pid = pid;
-                        slaves[i].in = input[FD_WRITE];
-                        slaves[i].out = output[FD_READ];
+                        slaves[i].fd_stdin = input[FD_WRITE];
+                        slaves[i].fd_stdout = output[FD_READ];
                         slaves[i].remaining_tasks = 0;
 
                         if (close(input[FD_READ]) == -1) {
@@ -134,11 +134,10 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
         }
 }
 
-void send_files(slave *slaves, int total_slaves, int files_per_slave,
-                char *const files[], struct TASK_MANAGER *task_mgmt,
-                struct VIEW_SHARED *view_mgmt)
+void send_files(slave *slaves, int total_slaves, char *const files[],
+                struct TASK_MANAGER *task_mgmt, struct VIEW_SHARED *view_mgmt)
 {
-        char buffer[BUFF_MEM_SIZE] = { 0 };
+        char buffer[BUFFER_SIZE] = { 0 };
         FILE *output_file = fopen(OUTPUT_FILE, "w");
         if (output_file == NULL) {
                 perror("ERROR: could not open output file");
@@ -149,61 +148,54 @@ void send_files(slave *slaves, int total_slaves, int files_per_slave,
                 int max_fd = 0, ready = 0;
                 fd_set read_fd_set;
                 FD_ZERO(&read_fd_set);
-                struct timeval tv = { 0 };
+                struct timeval tv = { .tv_sec = SLEEP_TIME, .tv_usec = 0 };
 
                 for (int i = 0; i < total_slaves; i++) {
-                        if (slaves[i].in > 0) {
-                                max_fd = MAX(max_fd, slaves[i].in);
-                                FD_SET(slaves[i].in, &read_fd_set);
+                        if (slaves[i].fd_stdout > 0) {
+                                max_fd = MAX(max_fd, slaves[i].fd_stdout);
+                                FD_SET(slaves[i].fd_stdout, &read_fd_set);
                         }
                 }
-
-                tv.tv_sec = SLEEP_TIME;
-                tv.tv_usec = 0;
 
                 ready = select(max_fd + 1, &read_fd_set, NULL, NULL, &tv);
                 if (ready == -1) {
                         perror("Error in select()");
                         fclose(output_file);
                         exit(EXIT_FAILURE);
-                } else if (ready > 0) {
-                        for (int i = 0; i < total_slaves && ready > 0; i++) {
-                                if (FD_ISSET(slaves[i].in, &read_fd_set) != 0) {
-                                        // Recibo un archivo
-                                        ssize_t dim_read = read(slaves[i].in,
-                                                                buffer,
-                                                                BUFF_MEM_SIZE);
-                                        if (dim_read == -1) {
-                                                perror("Error reading from"
-                                                       " file descriptor");
-                                        } else if (dim_read == 0) {
-                                                // El hijo termino
-                                                slaves[i].in = -1;
-                                        } else {
-                                                if (read_output_from_slave(
-                                                            output_file,
-                                                            &slaves[i], buffer,
-                                                            dim_read, task_mgmt,
-                                                            view_mgmt) != 0) {
-                                                        fclose(output_file);
-                                                        exit(EXIT_FAILURE);
-                                                }
-                                                task_mgmt->done++;
+                }
+                for (int i = 0; i < total_slaves; i++) {
+                        if (FD_ISSET(slaves[i].fd_stdout, &read_fd_set) != 0) {
+                                // Recibo un archivo
+                                ssize_t dim_read = read(slaves[i].fd_stdout,
+                                                        buffer, BUFFER_SIZE);
+                                if (dim_read == -1) {
+                                        perror("Error reading from"
+                                               " file descriptor");
+                                } else if (dim_read == 0) {
+                                        // El hijo termino
+                                        slaves[i].fd_stdout = -1;
+                                } else {
+                                        if (read_output_from_slave(
+                                                    output_file, &slaves[i],
+                                                    buffer, dim_read, task_mgmt,
+                                                    view_mgmt) != 0) {
+                                                fclose(output_file);
+                                                exit(EXIT_FAILURE);
                                         }
-
-                                        // Envio nuevos archivos a los esclavos
-                                        if (slaves[i].remaining_tasks == 0 &&
-                                            task_mgmt->done <
-                                                    task_mgmt->total) {
-                                                if (send_files_to_slave(
-                                                            &slaves[i], files,
-                                                            task_mgmt) != 0) {
-                                                        fclose(output_file);
-                                                        exit(EXIT_FAILURE);
-                                                }
-                                        }
-                                        ready--;
+                                        task_mgmt->done++;
                                 }
+
+                                // Envio nuevos archivos a los esclavos
+                                if (slaves[i].remaining_tasks == 0 &&
+                                    task_mgmt->done < task_mgmt->total) {
+                                        if (send_files_to_slave(
+                                                    &slaves[i], files,
+                                                    task_mgmt) != 0) {
+                                                fclose(output_file);
+                                                exit(EXIT_FAILURE);
+                                        }
+                                }
+                                ready--;
                         }
                 }
         }
@@ -220,7 +212,7 @@ static int send_files_to_slave(slave *slave, char *const files[],
         sprintf(file_to_slave, "%s\n", files[task_mgmt->done]);
         file_to_slave[len - 1] = '\0';
 
-        if (write(slave->out, file_to_slave, len) == -1) {
+        if (write(slave->fd_stdin, file_to_slave, len) == -1) {
                 perror("Error sending files to slave");
                 free(file_to_slave);
                 return 1;
@@ -244,67 +236,30 @@ static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
         slave->remaining_tasks--;
 
         // View
-        int wrote = sprintf(view_mgmt->shm, "%s\n", buffer);
+        int wrote =
+                sprintf(view_mgmt->shm + view_mgmt->shm_offset, "%s\n", buffer);
         if (wrote < 0) {
                 fprintf(stderr, "An error occurred while writting "
                                 "the shared memory\n");
                 return 1;
         }
 
-        view_mgmt->shm += wrote;
+        view_mgmt->shm_offset += wrote;
         sem_post(view_mgmt->sem);
 
         return 0;
-}
-
-void send_init_files(slave *slaves, int total_slaves, int initial_paths,
-                     char *const argv[], int totalTasks, int *tasksSent)
-{
-        for (int currentTask = 0, i = 1; currentTask < initial_paths;
-             currentTask++, i++) {
-                char fileSent[BUFF_MEM_SIZE] = { 0 };
-                strcat(fileSent, argv[i]);
-                strcat(fileSent, "\n\0");
-
-                if (write(slaves[currentTask % total_slaves].out, fileSent,
-                          strlen(fileSent)) == -1) {
-                        perror("Error writing in fdPath");
-                        exit(EXIT_FAILURE);
-                }
-
-                tasksSent++;
-                slaves[currentTask % total_slaves].remaining_tasks++;
-        }
-}
-
-int close_fds(slave *slaves, size_t n)
-{
-        int ret = 0;
-        for (int i = 0; i < n; i++) {
-                if (close(slaves[i].in) == -1) {
-                        perror("ERROR closing stdin fd");
-                        ret++;
-                }
-
-                if (close(slaves[i].out) == -1) {
-                        perror("ERROR close stdout fd");
-                        ret++;
-                }
-        }
-
-        return ret;
 }
 
 int kill_slaves(slave *slaves, size_t n)
 {
         int ret = 0;
         for (int i = 0; i < n; i++) {
-                if (close(slaves[i].in) == -1) {
+                if (close(slaves[i].fd_stdout) == -1) {
                         perror("Error closing read end");
                         ret++;
                 }
 
-                if (close(slaves[i].out) == -1) {
+                if (close(slaves[i].fd_stdin) == -1) {
                         perror("Error closing write end");
                         ret++;
                 }

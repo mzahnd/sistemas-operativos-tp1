@@ -18,8 +18,7 @@
 #include "../util/shared_mem.h"
 #include "slave_handler.h"
 
-#define SHM_SIZE 65536
-#define SLEEP_TIME 2
+#define SLEEP_TIME 3
 
 int main(int argc, char **argv)
 {
@@ -31,13 +30,13 @@ int main(int argc, char **argv)
                                           .assigned = 0,
                                           .done = 0 };
         size_t total_slaves = MIN(task_mgmt.total, SLAVES);
-        size_t files_per_slave = (task_mgmt.total > total_slaves * 2) ? 2 : 1;
 
         slave slaves[total_slaves];
 
         struct VIEW_SHARED view_mgmt = {
-                .shm_len = SHM_SIZE,
-                .shm = open_shared_mem(SHARED_MEM_NAME, view_mgmt.shm_len),
+                .shm_len = BUFFER_SIZE * task_mgmt.total,
+                .shm = open_shared_mem(SHARED_MEM_NAME, BUFFER_SIZE * task_mgmt.total),
+                .shm_offset = 0,
                 .sem = open_sem(SEM_NAME)
         };
 
@@ -48,10 +47,9 @@ int main(int argc, char **argv)
         create_slaves(slaves, total_slaves, argv + 1, &task_mgmt);
 
         // Enviar files a los esclavos
-        send_files(slaves, total_slaves, files_per_slave, argv + 1, &task_mgmt,
+        send_files(slaves, total_slaves, argv + 1, &task_mgmt,
                    &view_mgmt);
 
-        close_fds(slaves, total_slaves);
         kill_slaves(slaves, total_slaves);
 
         close_shared_mem(view_mgmt.shm, SHARED_MEM_NAME, view_mgmt.shm_len);
