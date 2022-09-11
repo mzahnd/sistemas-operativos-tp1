@@ -16,7 +16,7 @@
 
 sem_t *open_sem(const char *name)
 {
-     return NULL;
+        return NULL;
 }
 
 void close_sem(sem_t *sem)
