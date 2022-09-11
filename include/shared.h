@@ -21,5 +21,6 @@
 #define SHARED_MEM_NAME "torvalds_nunchucks"
 
 #define OUTPUT_FILE "resultado.txt"
+#define BUFFER_SIZE 1024
 
 #endif /* SHARED_H */
