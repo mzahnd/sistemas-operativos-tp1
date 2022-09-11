@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <utils.h>
+#include <error_handler.h>
 // #include <shared_mem.h>
 #include <semaphore.h>
 
@@ -101,11 +102,89 @@ void create_slaves(slave * slaves, int total_slaves, char * const argv[]){
         
 }
 
-void send_files(slave * slaves, int total_slaves, int files_per_slave, char * const argv[], int totalTasks) {
+void send_files(slave * slaves, int total_slaves, int files_per_slave, char * const argv[], int total_tasks) {
         int tasksSent = 0;
         int tasksFinished = 0;
 
-        for(int currentTask=0, i=1; currentTask < (files_per_slave * total_slaves); currentTask++, i++) {
+        int initial_paths = files_per_slave * total_slaves;
+        sent_init_files(slaves, total_slaves, initial_paths, argv, total_tasks, &tasksSent);
+
+        char buffer[BUFF_MEM_SIZE] = {0};
+
+        while(tasksFinished < total_tasks) {
+                
+                fd_set readFdSet;
+                FD_ZERO(&readFdSet);
+
+                int max = -1;
+
+                for(int i = 0; i < total_slaves; i++) {
+                        if(slaves[i].in > 0) {
+                                max = MAX(max, slaves[i].in);
+                                // No se por que FD_SET tira error
+                                // FD_SET(slavesArray[i].in, &readFdSet);
+                        }
+                }
+
+                int ready;
+
+                if((ready = select(max + 1, &readFdSet, NULL, NULL, NULL)) == ERROR) {
+                        errorHandler("Error in select");
+                }
+
+        for(int i = 0; i < total_slaves && ready > 0; i++) {
+
+            int fd = slaves[i].in;
+
+            if(FD_ISSET(fd, &readFdSet)) {
+                
+                // Recibo un archivo
+                int dimRead = read(fd, buffer, BUFF_MEM_SIZE);
+                if (dimRead == ERROR) {
+                    errorHandler("Error reading from fdData");
+                } else if (dimRead <= 0) {
+                    slaves[i].in= -1; // El hijo termino
+                } else {
+                    tasksFinished++;
+
+                // Esto ultimo no lo entendi y tiraba error:
+                    // Escribo el resultado en result.txt
+                //     fprintf(outpFile, "%s\n", buffer);
+                //     slaves[i].done_tasks--;
+                //     buffer[dimRead - 1] = '\0';
+
+                    // Envio respuesta al view
+                //     if (sprintf((char*)(shMemory), "%s\n", buffer) == ERROR) {
+                //         errorHandler("Error performing sprintf while sending files");
+                //     }
+                //     shMemory += JUMP;
+                //     semPost(sem);
+
+                }
+
+                // Envio nuevos archivos a los esclavos
+                if(slaves[i].done_tasks == 0 && tasksSent < total_tasks) {
+                    char fileToSlave[BUFF_MEM_SIZE] = {0};
+                    strcat(fileToSlave, argv[tasksSent + 1]);
+                    strcat(fileToSlave, "\n\0");
+                    if(write(slaves[i].out, fileToSlave, strlen(fileToSlave)) == ERROR) {
+                        errorHandler("Error sending files to slaves");
+                    }
+                    tasksSent++;
+                    slaves[i].done_tasks++;
+                }
+                ready--;
+            }
+
+        }
+
+
+
+
+}
+
+void sent_init_files(slave * slaves, int total_slaves, int initial_paths, char * const argv[], int totalTasks, int *tasksSent) {
+        for(int currentTask=0, i=1; currentTask < initial_paths; currentTask++, i++) {
                 char fileSent[BUFF_MEM_SIZE] = {0};
                 strcat(fileSent, argv[i]);
                 strcat(fileSent, "\n\0");
@@ -117,10 +196,9 @@ void send_files(slave * slaves, int total_slaves, int files_per_slave, char * co
                 tasksSent++;
                 slaves[currentTask % total_slaves].done_tasks++;
         }
-
 }
 
-void close_fds(slave slaves[], int dim) {
+void close_fds(slave * slaves, int dim) {
 	for (int i = 0; i < dim; i++) {
 		if (close(slaves[i].in) == -1) {
 			exit_error("ERROR closing stdin fd");
