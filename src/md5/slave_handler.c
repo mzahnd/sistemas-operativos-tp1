@@ -53,7 +53,7 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                 if (total_slaves < SLAVES || task_mgmt->total == SLAVES) {
                         initial_jobs_assigned = 1;
                 }
-      
+
                 int pid = fork();
 
 #ifdef DEBUG
@@ -99,7 +99,7 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                                 if (close(output_fd) == -1) {
                                         perror("Closing sibling output file descriptor failed");
                                         exit(EXIT_FAILURE);
-                                } 
+                                }
                                 if (close(input_fd) == -1) {
                                         perror("Closing sibling input file descriptor failed");
                                         exit(EXIT_FAILURE);
@@ -120,12 +120,15 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                                 argv[j] = files[task_mgmt->assigned++];
                         }
                         argv[argc - 1] = NULL;
-                        
-                        // for (int j = 0; j < argc; j++) {
-                        //         printf("SENDING ARG %d TO SLAVE [%d]: [%s]\n", j, i, argv[j]);
-                        // }
 
-                        //printf("Before execv slave %d\n", i);
+#ifdef DEBUG
+                        for (int j = 0; j < argc; j++) {
+                                printf("SENDING ARG %d TO SLAVE [%d]: [%s]\n",
+                                       j, i, argv[j]);
+                        }
+
+                        printf("Before execv slave %d\n", i);
+#endif
 
                         if (execv(argv[0], argv) == -1) {
                                 perror("execv failed in child process");
@@ -189,16 +192,23 @@ void send_files(slave *slaves, int total_slaves, char *const files[],
                         exit(EXIT_FAILURE);
                 }
                 for (int i = 0; i < total_slaves; i++) {
-                        //printf("Check Slave [%d]\n", i);
+#ifdef DEBUG
+                        printf("Check Slave [%d]\n", i);
+#endif
                         if (FD_ISSET(slaves[i].fd_stdout, &read_fd_set) != 0) {
-                                //printf("Salve [%d] is ready\n", i);
+#ifdef DEBUG
+                                printf("Salve [%d] is ready\n", i);
+#endif
                                 // Recibo un archivo
                                 ssize_t dim_read = read(slaves[i].fd_stdout,
                                                         buffer, BUFFER_SIZE);
                                 if (dim_read == -1) {
                                         perror("Error reading from"
                                                " file descriptor");
-                                } else if (dim_read > 0) { // Pensar bien que pasa si dim es 0, Si es 0, capaz el slave murio y no hay que pasarle nada
+                                } else if (dim_read > 0) {
+                                        // Pensar bien que pasa si dim es 0,
+                                        // Si es 0, capaz el slave murio y no hay que
+                                        // pasarle nada
                                         if (read_output_from_slave(
                                                     output_file, &slaves[i],
                                                     buffer, dim_read,
@@ -212,7 +222,10 @@ void send_files(slave *slaves, int total_slaves, char *const files[],
                                 // Envio nuevos archivos a los esclavos
                                 if (slaves[i].remaining_tasks == 0 &&
                                     task_mgmt->assigned < task_mgmt->total) {
-                                        //printf("Por enviar file [%s] al slave [%d]\n", files[task_mgmt->assigned], i);
+#ifdef DEBUG
+                                        printf("Por enviar file [%s] al slave [%d]\n",
+                                               files[task_mgmt->assigned], i);
+#endif
                                         if (send_files_to_slave(
                                                     &slaves[i], files,
                                                     task_mgmt) != 0) {
@@ -256,9 +269,6 @@ static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
 {
         buffer[len - 1] = '\0';
 
-        fprintf(output, "%s\n", buffer);
-        
-
         // View
         int wrote =
                 sprintf(view_mgmt->shm + view_mgmt->shm_offset, "%s\n", buffer);
@@ -269,11 +279,18 @@ static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
                 return 1;
         }
 
-        char * token = strtok(buffer, DELIMITER);
+        char *token = strtok(buffer, DELIMITER);
         while (token != NULL) {
+#ifdef DEBUG
                 printf("SLAVE %d OUTPUT: %s\n", slave->pid, token);
-                token = strtok(NULL, DELIMITER);
+#endif
+                fprintf(output, "%s", token);
+                if (token[strlen(token) - 1] != '\n') {
+                        fputc('\n', output);
+                }
                 slave->remaining_tasks--;
+
+                token = strtok(NULL, DELIMITER);
         }
 
         // Delete
