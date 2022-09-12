@@ -62,7 +62,7 @@ void do_task(char *file_name)
 void wait_more_tasks()
 {
         char buff[MAX_COMMAND_LENGTH] = { 0 };
-        int dim = 0;
+        size_t dim = 0;
         while ((dim = read(STDIN_FILENO, buff, MAX_COMMAND_LENGTH)) > 0) {
                 // Esto es porque lo hago a mano con la terminal, por lo que
                 // tengo que apretar enter y agrega un \n.
