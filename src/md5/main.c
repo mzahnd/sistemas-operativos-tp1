@@ -45,7 +45,7 @@ int main(int argc, char **argv)
         // si lo hace le comparte el buffer de llegada
         printf("%ld", view_mgmt.shm_len);
         sleep(SLEEP_TIME);
-        
+
         create_slaves(slaves, total_slaves, argv + 1, &task_mgmt);
 
         // Enviar files a los esclavos

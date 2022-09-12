@@ -47,7 +47,8 @@ void do_task(char *file_name)
                 exit(EXIT_FAILURE);
         }
 
-        int result_dim = fread(result, sizeof(char), MAX_COMMAND_OUTPUT_LENGTH, output);
+        int result_dim =
+                fread(result, sizeof(char), MAX_COMMAND_OUTPUT_LENGTH, output);
         result[result_dim] = '\0';
 
         printf("PID: %d - md5: %s%s", getpid(), result, DELIMITER);
