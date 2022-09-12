@@ -18,8 +18,8 @@
 #include "../util/semaphore.h"
 #include "slave_handler.h"
 
-#define SLAVE_PATH "./slave"
-#define FILES_PER_SLAVE 2
+#define SLAVE_PATH "./bin/slave"
+#define FILES_PER_SLAVE 3
 
 #define SLEEP_TIME 5
 
@@ -49,13 +49,17 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                         exit(EXIT_FAILURE);
                 }
 
-                int initial_jobs_assigned =
-                        (total_slaves > SLAVES ? FILES_PER_SLAVE : 1);
+                int initial_jobs_assigned = FILES_PER_SLAVE;
+                if (total_slaves < SLAVES || task_mgmt->total == SLAVES) {
+                        initial_jobs_assigned = 1;
+                }
+
+                printf("Before fork\n");        
                 int pid = fork();
 
 #ifdef DEBUG
                 fprintf(stderr, "[Debug] Fork PID: %d\n", pid);
-                sleep(10);
+                sleep(1);
 #endif
 
                 if (pid == -1) {
@@ -89,6 +93,20 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                                 exit(EXIT_FAILURE);
                         }
 
+                        for (int j = 0; j < i; j++) {
+                                int output_fd = slaves[j].fd_stdout;
+                                int input_fd = slaves[j].fd_stdin;
+
+                                if (close(output_fd) == -1) {
+                                        perror("Closing sibling output file descriptor failed");
+                                        exit(EXIT_FAILURE);
+                                } 
+                                if (close(input_fd) == -1) {
+                                        perror("Closing sibling input file descriptor failed");
+                                        exit(EXIT_FAILURE);
+                                }
+                        }
+
                         // Create argv for execv
                         // 2 = SLAVE_PATH + '\0'
                         size_t argc = 2 + initial_jobs_assigned;
@@ -103,8 +121,14 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                                 argv[j] = files[task_mgmt->assigned++];
                         }
                         argv[argc - 1] = NULL;
+                        
+                        // for (int j = 0; j < argc; j++) {
+                        //         printf("SENDING ARG %d TO SLAVE [%d]: [%s]\n", j, i, argv[j]);
+                        // }
 
-                        if (execv(SLAVE_PATH, argv) == -1) {
+                        //printf("Before execv slave %d\n", i);
+
+                        if (execv(argv[0], argv) == -1) {
                                 perror("execv failed in child process");
                                 free(argv[0]);
                                 free(argv);
@@ -173,10 +197,7 @@ void send_files(slave *slaves, int total_slaves, char *const files[],
                                 if (dim_read == -1) {
                                         perror("Error reading from"
                                                " file descriptor");
-                                } else if (dim_read == 0) {
-                                        // El hijo termino
-                                        slaves[i].fd_stdout = -1;
-                                } else {
+                                } else if (dim_read > 0) { // Pensar bien que pasa si dim es 0, Si es 0, capaz el slave murio y no hay que pasarle nada
                                         if (read_output_from_slave(
                                                     output_file, &slaves[i],
                                                     buffer, dim_read,
@@ -239,12 +260,20 @@ static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
         // View
         int wrote =
                 sprintf(view_mgmt->shm + view_mgmt->shm_offset, "%s\n", buffer);
+
         if (wrote < 0) {
                 fprintf(stderr, "An error occurred while writting "
                                 "the shared memory\n");
                 return 1;
         }
 
+        char * token = strtok(buffer, DELIMITER);
+        while (token != NULL) {
+                printf("SLAVE %d OUTPUT: %s\n", slave->pid, token);
+                token = strtok(NULL, DELIMITER);
+        }
+
+        // Delete
         view_mgmt->shm_offset += wrote;
         sem_post(view_mgmt->sem);
 

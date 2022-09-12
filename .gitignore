@@ -450,4 +450,5 @@ dkms.conf
 # Other
 .idea/
 resultado.txt
+trash/
 .DS_Store

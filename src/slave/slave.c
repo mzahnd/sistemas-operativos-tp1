@@ -1,6 +1,7 @@
 #define _XOPEN_SOURCE 500
 
 #include <fcntl.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -19,6 +20,8 @@ void wait_more_tasks();
 
 int main(int argc, char const *argv[])
 {
+        setvbuf(stdout, NULL, _IONBF, 0);
+
         for (int i = 1; i < argc; i++) {
                 do_task((char *)argv[i]);
         }
@@ -29,6 +32,7 @@ int main(int argc, char const *argv[])
 
 void do_task(char *file_name)
 {
+        // printf("PID: %d Doing [%s]\n", getpid(), file_name);
         FILE *output = NULL;
         char command[MAX_COMMAND_LENGTH] = { 0 };
         char result[MAX_COMMAND_OUTPUT_LENGTH * sizeof(char)] = { 0 };

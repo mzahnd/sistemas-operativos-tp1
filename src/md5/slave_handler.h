@@ -12,7 +12,7 @@
 #ifndef SLAVE_HANDLER_H
 #define SLAVE_HANDLER_H
 
-#define SLAVES 2
+#define SLAVES 3
 
 #include <stdio.h>
 #include <semaphore.h>
