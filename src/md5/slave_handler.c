@@ -239,6 +239,9 @@ void send_files(slave *slaves, int total_slaves, char *const files[],
         }
 
         fclose(output_file);
+
+        sem_post(view_mgmt->sem);
+        sprintf(view_mgmt->shm + view_mgmt->shm_offset, "%c", END_CHAR);
 }
 
 static int send_files_to_slave(slave *slave, char *const files[],
@@ -269,32 +272,39 @@ static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
 {
         buffer[len - 1] = '\0';
 
-        // View
-        int wrote =
-                sprintf(view_mgmt->shm + view_mgmt->shm_offset, "%s\n", buffer);
-
-        if (wrote < 0) {
-                fprintf(stderr, "An error occurred while writting "
-                                "the shared memory\n");
-                return 1;
-        }
-
         char *token = strtok(buffer, DELIMITER);
         while (token != NULL) {
 #ifdef DEBUG
                 printf("SLAVE %d OUTPUT: %s\n", slave->pid, token);
 #endif
+                // View
+                int wrote = sprintf(view_mgmt->shm + view_mgmt->shm_offset,
+                                    "%s", token);
+                /* if (token[strlen(token) - 1] != '\n') { */
+                /*         fputc('\n', view_mgmt->shm + view_mgmt->shm_offset); */
+                /*         wrote++; */
+                /* } */
+
+                // File
                 fprintf(output, "%s", token);
                 if (token[strlen(token) - 1] != '\n') {
                         fputc('\n', output);
                 }
+
+                view_mgmt->shm_offset += wrote;
                 slave->remaining_tasks--;
+
+                if (wrote < 0) {
+                        fprintf(stderr, "An error occurred while writting "
+                                        "the shared memory\n");
+                        return 1;
+                }
 
                 token = strtok(NULL, DELIMITER);
         }
 
         // Delete
-        view_mgmt->shm_offset += wrote;
+        /* view_mgmt->shm_offset += wrote - n_delimiters; */
         sem_post(view_mgmt->sem);
 
         return 0;

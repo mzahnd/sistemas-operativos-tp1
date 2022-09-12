@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <semaphore.h>
 #include <unistd.h>
 
@@ -22,8 +23,8 @@
 
 void print(sem_t *sem, char *shm, size_t shm_size)
 {
-        size_t i = 0;
-        while (i < shm_size) {
+        char *shm_off = shm;
+        while (shm_off < shm + shm_size) {
                 size_t jump = 0;
 
                 if (sem_wait(sem) == -1) {
@@ -31,9 +32,17 @@ void print(sem_t *sem, char *shm, size_t shm_size)
                         exit(EXIT_FAILURE);
                 }
 
-                jump = printf("%s", shm);
-                shm += jump;
-                i += jump;
+                fprintf(stderr, "[DEBUG VIEW] About to print\n");
+                fprintf(stderr, "shm len: %ld", strlen(shm));
+                fprintf(stderr, "shm_off len: %ld", strlen(shm_off));
+                jump = fprintf(stdout, "%s\n", shm_off);
+                shm_off += jump;
+                fprintf(stderr, "[DEBUG VIEW] Printed!\n");
+                
+                if (shm_off - 1 > shm && *(shm_off - 1) == END_CHAR) {
+                        fprintf(stderr, "[DEBUG VIEW] Bye, bye\n");
+                        break;
+                }
         }
 }
 
@@ -66,6 +75,8 @@ int main(int argc, char **argv)
                 fputs("Viewer error: Invalid shared memory size.\n", stderr);
                 exit(EXIT_FAILURE);
         }
+
+        fprintf(stderr, "[DEBUG VIEW] shm_size: %ld\n", shm_size);
 
         sem = open_sem(SEM_NAME);
         shm = open_shared_mem(SHARED_MEM_NAME, shm_size);

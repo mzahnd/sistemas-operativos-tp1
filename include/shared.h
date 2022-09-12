@@ -24,5 +24,6 @@
 #define BUFFER_SIZE 1023 // select() man specifies fds up to 1023 bytes
 
 #define DELIMITER "§"
+#define END_CHAR 0x1e
 
 #endif /* SHARED_H */
