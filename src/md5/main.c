@@ -35,7 +35,8 @@ int main(int argc, char **argv)
 
         struct VIEW_SHARED view_mgmt = {
                 .shm_len = BUFFER_SIZE * task_mgmt.total,
-                .shm = open_shared_mem(SHARED_MEM_NAME, BUFFER_SIZE * task_mgmt.total),
+                .shm = open_shared_mem(SHARED_MEM_NAME,
+                                       BUFFER_SIZE * task_mgmt.total),
                 .shm_offset = 0,
                 .sem = open_sem(SEM_NAME)
         };
@@ -47,8 +48,7 @@ int main(int argc, char **argv)
         create_slaves(slaves, total_slaves, argv + 1, &task_mgmt);
 
         // Enviar files a los esclavos
-        send_files(slaves, total_slaves, argv + 1, &task_mgmt,
-                   &view_mgmt);
+        send_files(slaves, total_slaves, argv + 1, &task_mgmt, &view_mgmt);
 
         kill_slaves(slaves, total_slaves);
 

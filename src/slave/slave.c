@@ -47,16 +47,15 @@ void do_task(char *file_name)
         fread(result, sizeof(char), MAX_COMMAND_OUTPUT_LENGTH, output);
         result[MAX_COMMAND_OUTPUT_LENGTH - 1] = '\0';
 
-        snprintf(buffer, BUFFER_SIZE, "PID: %d - md5: %s\n", getpid(),
-                 result);
+        snprintf(buffer, BUFFER_SIZE, "PID: %d - md5: %s", getpid(), result);
         write(STDOUT, buffer, 1 + strlen(buffer));
 
         int fd_2 = open("tmp_pipe", O_WRONLY);
         write(fd_2, buffer, 1 + strlen(buffer));
 
         if (pclose(output) == -1) {
-            perror("(slave) Error closing output file descriptor");
-            exit(EXIT_FAILURE);
+                perror("(slave) Error closing output file descriptor");
+                exit(EXIT_FAILURE);
         }
 }
 
@@ -65,12 +64,13 @@ void wait_more_tasks()
         char buff[MAX_COMMAND_LENGTH] = { 0 };
         int dim = 0;
         while ((dim = read(STDIN_FILENO, buff, MAX_COMMAND_LENGTH)) > 0) {
-                // // Esto es porque lo hago a mano con la terminal, por lo que
-                // // tengo que apretar enter y agrega un \n.
-                // // Posiblemente haya que sacarlo
-                // if (buff[dim - 1] == '\n') {
-                //         buff[dim - 1] = 0;
-                // }
+                // Esto es porque lo hago a mano con la terminal, por lo que
+                // tengo que apretar enter y agrega un \n.
+                // Posiblemente haya que sacarlo
+                char *nl = strchr(buff, '\n');
+                if (buff[nl - buff] == '\n') {
+                        buff[nl - buff] = 0;
+                }
                 do_task(buff);
                 memset(buff, 0, dim);
         }

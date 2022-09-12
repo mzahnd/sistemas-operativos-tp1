@@ -40,9 +40,8 @@ struct VIEW_SHARED {
 
 void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                    struct TASK_MANAGER *task_mgmt);
-void send_files(slave *slaves, int total_slaves,
-                char *const files[], struct TASK_MANAGER *task_mgmt,
-                struct VIEW_SHARED *view_mgmt);
+void send_files(slave *slaves, int total_slaves, char *const files[],
+                struct TASK_MANAGER *task_mgmt, struct VIEW_SHARED *view_mgmt);
 int kill_slaves(slave *slaves, size_t n);
 
 #endif /* SLAVE_HANDLER_H */

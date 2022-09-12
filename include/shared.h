@@ -21,6 +21,6 @@
 #define SHARED_MEM_NAME "torvalds_nunchucks"
 
 #define OUTPUT_FILE "resultado.txt"
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 1023 // select() man specifies fds up to 1023 bytes
 
 #endif /* SHARED_H */

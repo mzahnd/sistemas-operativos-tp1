@@ -23,15 +23,12 @@
 
 #define SLEEP_TIME 5
 
-#define BUFFER_SIZE 1024
-
 enum fd_rw { FD_READ = 0, FD_WRITE, N_FD_RW };
 
 static int send_files_to_slave(slave *slave, char *const files[],
                                struct TASK_MANAGER *task_mgmt);
 static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
-                                  ssize_t len, struct TASK_MANAGER *task_mgmt,
-                                  struct VIEW_SHARED *view_mgmt);
+                                  ssize_t len, struct VIEW_SHARED *view_mgmt);
 
 //Debe iniciar los procesos esclavos
 void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
@@ -52,7 +49,14 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                         exit(EXIT_FAILURE);
                 }
 
+                int initial_jobs_assigned =
+                        (total_slaves > SLAVES ? FILES_PER_SLAVE : 1);
                 int pid = fork();
+
+#ifdef DEBUG
+                fprintf(stderr, "[Debug] Fork PID: %d\n", pid);
+                sleep(10);
+#endif
 
                 if (pid == -1) {
                         perror("ERROR: in fork");
@@ -87,9 +91,7 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
 
                         // Create argv for execv
                         // 2 = SLAVE_PATH + '\0'
-                        size_t argc =
-                                2 +
-                                (total_slaves > SLAVES ? FILES_PER_SLAVE : 1);
+                        size_t argc = 2 + initial_jobs_assigned;
                         char **argv = (char **)calloc(argc, sizeof(char *));
                         if (argv == NULL) {
                                 perror("Could not allocate memory");
@@ -115,7 +117,7 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                         slaves[i].pid = pid;
                         slaves[i].fd_stdin = input[FD_WRITE];
                         slaves[i].fd_stdout = output[FD_READ];
-                        slaves[i].remaining_tasks = 0;
+                        slaves[i].remaining_tasks = initial_jobs_assigned;
 
                         if (close(input[FD_READ]) == -1) {
                                 perror("Closing file descriptor failed");
@@ -126,7 +128,7 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                                 exit(EXIT_FAILURE);
                         }
 
-                        task_mgmt->assigned += FILES_PER_SLAVE;
+                        task_mgmt->assigned += initial_jobs_assigned;
                         if (task_mgmt->assigned > task_mgmt->total) {
                                 task_mgmt->assigned = task_mgmt->total;
                         }
@@ -177,7 +179,7 @@ void send_files(slave *slaves, int total_slaves, char *const files[],
                                 } else {
                                         if (read_output_from_slave(
                                                     output_file, &slaves[i],
-                                                    buffer, dim_read, task_mgmt,
+                                                    buffer, dim_read,
                                                     view_mgmt) != 0) {
                                                 fclose(output_file);
                                                 exit(EXIT_FAILURE);
@@ -227,8 +229,7 @@ static int send_files_to_slave(slave *slave, char *const files[],
 }
 
 static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
-                                  ssize_t len, struct TASK_MANAGER *task_mgmt,
-                                  struct VIEW_SHARED *view_mgmt)
+                                  ssize_t len, struct VIEW_SHARED *view_mgmt)
 {
         buffer[len - 1] = '\0';
 

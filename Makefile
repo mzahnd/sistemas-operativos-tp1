@@ -24,7 +24,7 @@ EXE_VIEW	:= $(BIN)/vista
 EXE_SLAVE	:= $(BIN)/slave
 
 CFLAGS		:= -I$(INCLUDE) -fdiagnostics-color=auto --std=gnu11 -Wall \
-			   --pedantic -g
+			   --pedantic -g -DDEBUG
 LDLIBS		:= -pthread -lrt
 
 .PHONY: all clean
