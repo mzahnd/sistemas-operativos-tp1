@@ -23,4 +23,6 @@
 #define OUTPUT_FILE "resultado.txt"
 #define BUFFER_SIZE 1023 // select() man specifies fds up to 1023 bytes
 
+#define DELIMITER "§"
+
 #endif /* SHARED_H */
