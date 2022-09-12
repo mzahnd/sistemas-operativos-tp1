@@ -53,8 +53,7 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                 if (total_slaves < SLAVES || task_mgmt->total == SLAVES) {
                         initial_jobs_assigned = 1;
                 }
-
-                printf("Before fork\n");        
+      
                 int pid = fork();
 
 #ifdef DEBUG
@@ -190,7 +189,9 @@ void send_files(slave *slaves, int total_slaves, char *const files[],
                         exit(EXIT_FAILURE);
                 }
                 for (int i = 0; i < total_slaves; i++) {
+                        //printf("Check Slave [%d]\n", i);
                         if (FD_ISSET(slaves[i].fd_stdout, &read_fd_set) != 0) {
+                                //printf("Salve [%d] is ready\n", i);
                                 // Recibo un archivo
                                 ssize_t dim_read = read(slaves[i].fd_stdout,
                                                         buffer, BUFFER_SIZE);
@@ -211,6 +212,7 @@ void send_files(slave *slaves, int total_slaves, char *const files[],
                                 // Envio nuevos archivos a los esclavos
                                 if (slaves[i].remaining_tasks == 0 &&
                                     task_mgmt->assigned < task_mgmt->total) {
+                                        //printf("Por enviar file [%s] al slave [%d]\n", files[task_mgmt->assigned], i);
                                         if (send_files_to_slave(
                                                     &slaves[i], files,
                                                     task_mgmt) != 0) {
@@ -255,7 +257,7 @@ static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
         buffer[len - 1] = '\0';
 
         fprintf(output, "%s\n", buffer);
-        slave->remaining_tasks--;
+        
 
         // View
         int wrote =
@@ -271,6 +273,7 @@ static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
         while (token != NULL) {
                 printf("SLAVE %d OUTPUT: %s\n", slave->pid, token);
                 token = strtok(NULL, DELIMITER);
+                slave->remaining_tasks--;
         }
 
         // Delete
