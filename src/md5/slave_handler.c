@@ -189,7 +189,7 @@ void send_files(slave *slaves, int total_slaves, char *const files[],
 
                                 // Envio nuevos archivos a los esclavos
                                 if (slaves[i].remaining_tasks == 0 &&
-                                    task_mgmt->done < task_mgmt->total) {
+                                    task_mgmt->assigned < task_mgmt->total) {
                                         if (send_files_to_slave(
                                                     &slaves[i], files,
                                                     task_mgmt) != 0) {
@@ -208,10 +208,10 @@ void send_files(slave *slaves, int total_slaves, char *const files[],
 static int send_files_to_slave(slave *slave, char *const files[],
                                struct TASK_MANAGER *task_mgmt)
 {
-        size_t len = 2 + strlen(files[task_mgmt->done]);
+        size_t len = 2 + strlen(files[task_mgmt->assigned]);
         char *file_to_slave = (char *)calloc(len, sizeof(char));
 
-        sprintf(file_to_slave, "%s\n", files[task_mgmt->done]);
+        sprintf(file_to_slave, "%s\n", files[task_mgmt->assigned]);
         file_to_slave[len - 1] = '\0';
 
         if (write(slave->fd_stdin, file_to_slave, len) == -1) {
