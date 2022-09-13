@@ -24,6 +24,11 @@
 readonly SCRIPT_DIR="$(dirname ${BASH_SOURCE[0]})"
 pushd $SCRIPT_DIR &> /dev/null
 
+cd ../
+
+EXECS=("bin/md5" "bin/slave")
+TEST_FILE="Makefile"
+
 echo -e "\e[34m\e[1mCppCheck\e[0m"
 
 cppcheck \
@@ -32,7 +37,7 @@ cppcheck \
     --force \
     --inconclusive \
     --suppress=missingIncludeSystem \
-    "../src" > cppcheck_out.log
+    "src/" > "test/cppcheck_out.log"
 
 echo -en "\e[32m\e[1mDone.\e[0m"
 echo " See 'cppcheck_out.log'"
@@ -44,7 +49,7 @@ pvs-studio-analyzer analyze && \
 plog-converter \
     -a '64:1,2,3;GA:1,2,3;OP:1,2,3' \
     -t tasklist \
-    -o report.tasks \
+    -o "test/report.tasks" \
     PVS-Studio.log
 
 echo -en "\e[32m\e[1mDone.\e[0m"
@@ -53,12 +58,15 @@ echo ""
 
 echo -e "\e[34m\e[1mValgrind\e[0m"
 
-valgrind \
-    --leak-check=yes \
-    "./../bin/tp1-grupo11.elf" . > valgrind_out.log
-
-echo -en "\e[32m\e[1mDone.\e[0m"
-echo " See 'valgrind_out.log'"
+for bin_file in "${EXECS[@]}"; do
+    OUTPUT_LOG="test/valgrind_out_${bin_file##*/}.log"
+    valgrind \
+        --leak-check=yes \
+        $bin_file $TEST_FILE > $OUTPUT_LOG
+    
+    echo -en "\e[32m\e[1mDone file $bin_file.\e[0m"
+    echo " See '$OUTPUT_LOG'"
+done
 
 popd &> /dev/null
 
