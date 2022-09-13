@@ -240,8 +240,8 @@ void send_files(slave *slaves, int total_slaves, char *const files[],
 
         fclose(output_file);
 
-        sem_post(view_mgmt->sem);
         sprintf(view_mgmt->shm + view_mgmt->shm_offset, "%c", END_CHAR);
+        sem_post(view_mgmt->sem);
 }
 
 static int send_files_to_slave(slave *slave, char *const files[],
@@ -249,6 +249,10 @@ static int send_files_to_slave(slave *slave, char *const files[],
 {
         size_t len = 2 + strlen(files[task_mgmt->assigned]);
         char *file_to_slave = (char *)calloc(len, sizeof(char));
+        if (file_to_slave == NULL) {
+                perror("Could not allocate memory");
+                exit(EXIT_FAILURE);
+        }
 
         sprintf(file_to_slave, "%s\n", files[task_mgmt->assigned]);
         file_to_slave[len - 1] = '\0';
@@ -280,10 +284,6 @@ static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
                 // View
                 int wrote = sprintf(view_mgmt->shm + view_mgmt->shm_offset,
                                     "%s", token);
-                /* if (token[strlen(token) - 1] != '\n') { */
-                /*         fputc('\n', view_mgmt->shm + view_mgmt->shm_offset); */
-                /*         wrote++; */
-                /* } */
 
                 // File
                 fprintf(output, "%s", token);
@@ -301,11 +301,8 @@ static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
                 }
 
                 token = strtok(NULL, DELIMITER);
+                sem_post(view_mgmt->sem);
         }
-
-        // Delete
-        /* view_mgmt->shm_offset += wrote - n_delimiters; */
-        sem_post(view_mgmt->sem);
 
         return 0;
 }
