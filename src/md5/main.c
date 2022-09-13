@@ -53,8 +53,10 @@ int main(int argc, char **argv)
 
         kill_slaves(slaves, total_slaves);
 
-        close_shared_mem(view_mgmt.shm, SHARED_MEM_NAME, view_mgmt.shm_len);
-        close_sem(view_mgmt.sem);
+        if (isatty(STDOUT_FILENO)) {
+                close_shared_mem(view_mgmt.shm, SHARED_MEM_NAME, view_mgmt.shm_len);
+                close_sem(view_mgmt.sem);
+        }
 
         return 0;
 }

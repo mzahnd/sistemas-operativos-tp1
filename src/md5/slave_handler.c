@@ -291,6 +291,7 @@ static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
                         fputc('\n', output);
                 }
 
+                //fprintf(stderr, "SHM: [%p], str: [%s]\n", (char *)(view_mgmt->shm + view_mgmt->shm_offset), (char *)(view_mgmt->shm));
                 view_mgmt->shm_offset += wrote;
                 slave->remaining_tasks--;
 

@@ -32,7 +32,7 @@ void print(sem_t *sem, char *shm, size_t shm_size)
                         exit(EXIT_FAILURE);
                 }
 
-                jump = fprintf(stdout, "%s\n", shm_off);
+                jump = printf("%s\n", shm_off);
                 shm_off += jump;
 
                 if (shm_off - 1 > shm && *(shm_off - 2) == END_CHAR) {
