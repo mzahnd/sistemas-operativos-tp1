@@ -453,3 +453,5 @@ resultado.txt
 test_files/
 trash/
 .DS_Store
+strace_out
+vgcore.*
