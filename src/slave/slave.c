@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../include/shared.h"
+#include <shared.h>
 
 #define MAX_COMMAND_LENGTH 1024
 #define MAX_COMMAND_OUTPUT_LENGTH 128
@@ -43,7 +43,6 @@ int main(int argc, char const *argv[])
 
 void do_task(char *file_name)
 {
-        // printf("PID: %d Doing [%s]\n", getpid(), file_name);
         FILE *output = NULL;
         char command[MAX_COMMAND_LENGTH] = { 0 };
         char result[MAX_COMMAND_OUTPUT_LENGTH * sizeof(char)] = { 0 };
@@ -76,13 +75,12 @@ void wait_more_tasks()
         char buff[MAX_COMMAND_LENGTH] = { 0 };
         size_t dim = 0;
         while ((dim = read(STDIN_FILENO, buff, MAX_COMMAND_LENGTH)) > 0) {
-                // Esto es porque lo hago a mano con la terminal, por lo que
-                // tengo que apretar enter y agrega un \n.
-                // Posiblemente haya que sacarlo
+                // Next filename can be read from stdin or a pipe
                 char *nl = strchr(buff, '\n');
                 if (nl != NULL && buff[nl - buff] == '\n') {
                         buff[nl - buff] = 0;
                 }
+
                 do_task(buff);
                 memset(buff, 0, dim);
         }

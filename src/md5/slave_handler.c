@@ -14,7 +14,7 @@
 #include <sys/select.h>
 #include <unistd.h>
 
-#include "../../include/shared.h"
+#include <shared.h>
 #include "../util/semaphore.h"
 #include "slave_handler.h"
 
@@ -97,11 +97,13 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                                 int input_fd = slaves[j].fd_stdin;
 
                                 if (close(output_fd) == -1) {
-                                        perror("Closing sibling output file descriptor failed");
+                                        perror("Closing sibling output"
+                                               " file descriptor failed");
                                         exit(EXIT_FAILURE);
                                 }
                                 if (close(input_fd) == -1) {
-                                        perror("Closing sibling input file descriptor failed");
+                                        perror("Closing sibling input"
+                                               " file descriptor failed");
                                         exit(EXIT_FAILURE);
                                 }
                         }
@@ -206,9 +208,6 @@ void send_files(slave *slaves, int total_slaves, char *const files[],
                                         perror("Error reading from"
                                                " file descriptor");
                                 } else if (dim_read > 0) {
-                                        // Pensar bien que pasa si dim es 0,
-                                        // Si es 0, capaz el slave murio y no hay que
-                                        // pasarle nada
                                         if (read_output_from_slave(
                                                     output_file, &slaves[i],
                                                     buffer, dim_read,
@@ -223,7 +222,8 @@ void send_files(slave *slaves, int total_slaves, char *const files[],
                                 if (slaves[i].remaining_tasks == 0 &&
                                     task_mgmt->assigned < task_mgmt->total) {
 #ifdef DEBUG
-                                        printf("Por enviar file [%s] al slave [%d]\n",
+                                        printf("Por enviar file [%s]"
+                                               " al slave [%d]\n",
                                                files[task_mgmt->assigned], i);
 #endif
                                         if (send_files_to_slave(
@@ -291,7 +291,6 @@ static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
                         fputc('\n', output);
                 }
 
-                //fprintf(stderr, "SHM: [%p], str: [%s]\n", (char *)(view_mgmt->shm + view_mgmt->shm_offset), (char *)(view_mgmt->shm));
                 view_mgmt->shm_offset += wrote;
                 slave->remaining_tasks--;
 

@@ -15,7 +15,7 @@
 #include <semaphore.h>
 #include <unistd.h>
 
-#include "../../include/shared.h"
+#include <shared.h>
 #include "../util/semaphore.h"
 #include "../util/shared_mem.h"
 

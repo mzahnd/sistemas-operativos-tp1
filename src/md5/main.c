@@ -13,12 +13,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "../../include/shared.h"
+#include <shared.h>
 #include "../util/semaphore.h"
 #include "../util/shared_mem.h"
 #include "slave_handler.h"
 
-#define SLEEP_TIME 3
+#define SLEEP_TIME 2
 
 int main(int argc, char **argv)
 {
@@ -41,9 +41,10 @@ int main(int argc, char **argv)
                 .sem = open_sem(SEM_NAME)
         };
 
+        printf("%lu\n", view_mgmt.shm_len);
+
         // Consigna: DEBE esperar 2 segundos a que aparezca un proceso vista,
         // si lo hace le comparte el buffer de llegada
-        printf("%lu\n", view_mgmt.shm_len);
         sleep(SLEEP_TIME);
 
         create_slaves(slaves, total_slaves, argv + 1, &task_mgmt);
@@ -54,7 +55,8 @@ int main(int argc, char **argv)
         kill_slaves(slaves, total_slaves);
 
         if (isatty(STDOUT_FILENO)) {
-                close_shared_mem(view_mgmt.shm, SHARED_MEM_NAME, view_mgmt.shm_len);
+                close_shared_mem(view_mgmt.shm, SHARED_MEM_NAME,
+                                 view_mgmt.shm_len);
                 close_sem(view_mgmt.sem);
         }
 
