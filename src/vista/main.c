@@ -32,15 +32,10 @@ void print(sem_t *sem, char *shm, size_t shm_size)
                         exit(EXIT_FAILURE);
                 }
 
-                fprintf(stderr, "[DEBUG VIEW] About to print\n");
-                fprintf(stderr, "shm len: %ld", strlen(shm));
-                fprintf(stderr, "shm_off len: %ld", strlen(shm_off));
                 jump = fprintf(stdout, "%s\n", shm_off);
                 shm_off += jump;
-                fprintf(stderr, "[DEBUG VIEW] Printed!\n");
-                
-                if (shm_off - 1 > shm && *(shm_off - 1) == END_CHAR) {
-                        fprintf(stderr, "[DEBUG VIEW] Bye, bye\n");
+
+                if (shm_off - 1 > shm && *(shm_off - 2) == END_CHAR) {
                         break;
                 }
         }
@@ -71,12 +66,10 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
         }
 
-        if (shm_size <= 0) {
+        if (shm_size == 0) {
                 fputs("Viewer error: Invalid shared memory size.\n", stderr);
                 exit(EXIT_FAILURE);
         }
-
-        fprintf(stderr, "[DEBUG VIEW] shm_size: %ld\n", shm_size);
 
         sem = open_sem(SEM_NAME);
         shm = open_shared_mem(SHARED_MEM_NAME, shm_size);
