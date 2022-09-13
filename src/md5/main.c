@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 
         // Consigna: DEBE esperar 2 segundos a que aparezca un proceso vista,
         // si lo hace le comparte el buffer de llegada
-        printf("%ld\n", view_mgmt.shm_len);
+        printf("%lu\n", view_mgmt.shm_len);
         sleep(SLEEP_TIME);
 
         create_slaves(slaves, total_slaves, argv + 1, &task_mgmt);
