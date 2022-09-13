@@ -1,3 +1,14 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+/**
+ * This file is part of sistemas-operativos-tp1
+ * Licensed under MIT License.
+ * Copyright (c) 2022 Flores Levalle, M.
+ *                    López, P.
+ *                    Sierra Pérez, C.
+ *                    Zahnd, M. E.
+ */
+
 #define _XOPEN_SOURCE 500
 
 #include <fcntl.h>
@@ -49,7 +60,13 @@ void do_task(char *file_name)
 
         int result_dim =
                 fread(result, sizeof(char), MAX_COMMAND_OUTPUT_LENGTH, output);
-        result[result_dim] = '\0';
+
+        // Avoid array overrun
+        if (result_dim == MAX_COMMAND_OUTPUT_LENGTH) {
+                result[result_dim - 1] = '\0';
+        } else {
+                result[result_dim] = '\0';
+        }
 
         printf("PID: %d - md5: %s%s", getpid(), result, DELIMITER);
 }
@@ -63,7 +80,7 @@ void wait_more_tasks()
                 // tengo que apretar enter y agrega un \n.
                 // Posiblemente haya que sacarlo
                 char *nl = strchr(buff, '\n');
-                if (buff[nl - buff] == '\n') {
+                if (nl != NULL && buff[nl - buff] == '\n') {
                         buff[nl - buff] = 0;
                 }
                 do_task(buff);
