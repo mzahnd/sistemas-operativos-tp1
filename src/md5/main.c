@@ -12,6 +12,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <shared.h>
 #include "../util/semaphore.h"
@@ -19,6 +22,8 @@
 #include "slave_handler.h"
 
 #define SLEEP_TIME 2
+
+static void create_named_pipe(struct VIEW_SHARED *view_mgmt);
 
 int main(int argc, char **argv)
 {
@@ -38,7 +43,8 @@ int main(int argc, char **argv)
                 .shm = open_shared_mem(SHARED_MEM_NAME,
                                        BUFFER_SIZE * task_mgmt.total),
                 .shm_offset = 0,
-                .sem = open_sem(SEM_NAME)
+                .sem = open_sem(SEM_NAME),
+                .named_pipe = -1
         };
 
         printf("%lu\n", view_mgmt.shm_len);
@@ -46,6 +52,8 @@ int main(int argc, char **argv)
         // Consigna: DEBE esperar 2 segundos a que aparezca un proceso vista,
         // si lo hace le comparte el buffer de llegada
         sleep(SLEEP_TIME);
+
+        create_named_pipe(&view_mgmt);
 
         create_slaves(slaves, total_slaves, argv + 1, &task_mgmt);
 
@@ -58,7 +66,19 @@ int main(int argc, char **argv)
                 close_shared_mem(view_mgmt.shm, SHARED_MEM_NAME,
                                  view_mgmt.shm_len);
                 close_sem(view_mgmt.sem);
+
+                close(view_mgmt.named_pipe);
         }
 
         return 0;
+}
+
+static void create_named_pipe(struct VIEW_SHARED *view_mgmt)
+{
+        if (mkfifo(NAMED_PIPE, 0666) == -1) {
+                perror("named pipe");
+                exit(2);
+        }
+
+        view_mgmt->named_pipe = open(NAMED_PIPE, O_WRONLY);
 }

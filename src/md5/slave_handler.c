@@ -13,6 +13,7 @@
 #include <string.h>
 #include <sys/select.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <shared.h>
 #include "../util/semaphore.h"
@@ -25,6 +26,7 @@
 
 enum fd_rw { FD_READ = 0, FD_WRITE, N_FD_RW };
 
+static void send_end_char(struct VIEW_SHARED *view_mgmt);
 static int send_files_to_slave(slave *slave, char *const files[],
                                struct TASK_MANAGER *task_mgmt);
 static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
@@ -240,8 +242,17 @@ void send_files(slave *slaves, int total_slaves, char *const files[],
 
         fclose(output_file);
 
-        sprintf(view_mgmt->shm + view_mgmt->shm_offset, "%c", END_CHAR);
-        sem_post(view_mgmt->sem);
+        send_end_char(view_mgmt);
+}
+
+static void send_end_char(struct VIEW_SHARED *view_mgmt)
+{
+        // sprintf(view_mgmt->shm + view_mgmt->shm_offset, "%c", END_CHAR);
+        // sem_post(view_mgmt->sem);
+
+        char end_char_buff[] = { END_CHAR, '\0' };
+
+        write(view_mgmt->named_pipe, end_char_buff, ARR_SIZE(end_char_buff));
 }
 
 static int send_files_to_slave(slave *slave, char *const files[],
@@ -282,8 +293,17 @@ static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
                 printf("SLAVE %d OUTPUT: %s\n", slave->pid, token);
 #endif
                 // View
-                int wrote = sprintf(view_mgmt->shm + view_mgmt->shm_offset,
-                                    "%s", token);
+                // int wrote = sprintf(view_mgmt->shm + view_mgmt->shm_offset,
+                //                     "%s", token);
+
+                int wrote = write(view_mgmt->named_pipe, token, strlen(token) + 1);
+                
+
+                if (wrote < 0) {
+                        perror("An error occurred while writting "
+                               "the shared memory");
+                        return 1;
+                }
 
                 // File
                 fprintf(output, "%s", token);
@@ -291,17 +311,11 @@ static int read_output_from_slave(FILE *output, slave *slave, char *buffer,
                         fputc('\n', output);
                 }
 
-                view_mgmt->shm_offset += wrote;
+                // view_mgmt->shm_offset += wrote;
                 slave->remaining_tasks--;
 
-                if (wrote < 0) {
-                        fprintf(stderr, "An error occurred while writting "
-                                        "the shared memory\n");
-                        return 1;
-                }
-
                 token = strtok(NULL, DELIMITER);
-                sem_post(view_mgmt->sem);
+                // sem_post(view_mgmt->sem);
         }
 
         return 0;

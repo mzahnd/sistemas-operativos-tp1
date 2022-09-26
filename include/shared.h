@@ -11,12 +11,14 @@
 #ifndef SHARED_H
 #define SHARED_H 1
 
+#define ARR_SIZE(a) (sizeof(a)/sizeof(*(a)))
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #define MIN(x, y) ((x) > (y) ? (y) : (x))
 
 #define STDIN 0
 #define STDOUT 1
 
+#define NAMED_PIPE "xkcd"
 #define SEM_NAME "stallman_ninjas"
 #define SHARED_MEM_NAME "torvalds_nunchucks"
 

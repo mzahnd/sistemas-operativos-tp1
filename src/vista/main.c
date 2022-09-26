@@ -14,6 +14,7 @@
 #include <string.h>
 #include <semaphore.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <shared.h>
 #include "../util/semaphore.h"
@@ -21,30 +22,28 @@
 
 #define BUFF_MEM_SIZE 64
 
-void print(sem_t *sem, char *shm, size_t shm_size)
+void print(size_t shm_size)
 {
-        char *shm_off = shm;
-        while (shm_off < shm + shm_size) {
-                size_t jump = 0;
+        ssize_t j = 0;
 
-                if (sem_wait(sem) == -1) {
-                        perror("sem_wait failed");
-                        exit(EXIT_FAILURE);
-                }
-
-                jump = printf("%s\n", shm_off);
-                shm_off += jump;
-
-                if (shm_off - 1 > shm && *(shm_off - 2) == END_CHAR) {
-                        break;
-                }
+        int fd_named = open(NAMED_PIPE, O_RDONLY);
+        char *buff = (char *)calloc(shm_size, sizeof(char));
+        if (buff == NULL) {
+                perror("buff");
+                exit(2);
         }
+
+        do {
+                j = 0;
+                j = read(fd_named, buff, shm_size);
+                printf("%s", buff);
+        } while (buff[j - 2] != END_CHAR);
+
+        free(buff);
 }
 
 int main(int argc, char **argv)
 {
-        sem_t *sem = NULL;
-        char *shm;
         size_t shm_size;
 
         if (setvbuf(stdout, NULL, _IONBF, 0) != 0) {
@@ -71,13 +70,7 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
         }
 
-        sem = open_sem(SEM_NAME);
-        shm = open_shared_mem(SHARED_MEM_NAME, shm_size);
-
-        print(sem, shm, shm_size);
-
-        close_sem(sem);
-        close_shared_mem(shm, SHARED_MEM_NAME, shm_size);
+        print(shm_size);
 
         return 0;
 }

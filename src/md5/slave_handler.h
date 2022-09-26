@@ -36,6 +36,8 @@ struct VIEW_SHARED {
         char *shm;
         size_t shm_len;
         size_t shm_offset;
+
+        int named_pipe;
 };
 
 void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
