@@ -33,9 +33,9 @@ int main(int argc, char const *argv[])
 {
         setvbuf(stdout, NULL, _IONBF, 0);
 
-        for (int i = 1; i < argc; i++) {
-                do_task((char *)argv[i]);
-        }
+        // for (int i = 1; i < argc; i++) {
+        //         do_task((char *)argv[i]);
+        // }
         wait_more_tasks();
 
         return 0;
@@ -67,7 +67,11 @@ void do_task(char *file_name)
                 result[result_dim] = '\0';
         }
 
-        printf("PID: %d - md5: %s%s", getpid(), result, DELIMITER);
+        if (pclose(output) == -1) {
+                fprintf(stderr, "ERROR: could not close fileDescriptor");
+                exit(EXIT_FAILURE);
+        }
+        printf("PID: %d - md5: %s%s     ", getpid(), result, DELIMITER);
 }
 
 void wait_more_tasks()

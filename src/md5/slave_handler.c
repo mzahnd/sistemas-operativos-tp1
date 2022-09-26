@@ -49,11 +49,6 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                         exit(EXIT_FAILURE);
                 }
 
-                int initial_jobs_assigned = FILES_PER_SLAVE;
-                if (total_slaves < SLAVES || task_mgmt->total == SLAVES) {
-                        initial_jobs_assigned = 1;
-                }
-
                 int pid = fork();
 
 #ifdef DEBUG
@@ -110,7 +105,7 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
 
                         // Create argv for execv
                         // 2 = SLAVE_PATH + '\0'
-                        size_t argc = 2 + initial_jobs_assigned;
+                        size_t argc = 2;
                         char **argv = (char **)calloc(argc, sizeof(char *));
                         if (argv == NULL) {
                                 perror("Could not allocate memory");
@@ -118,9 +113,6 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                         }
 
                         argv[0] = strdup(SLAVE_PATH);
-                        for (size_t j = 1; j < argc - 1; ++j) {
-                                argv[j] = files[task_mgmt->assigned++];
-                        }
                         argv[argc - 1] = NULL;
 
 #ifdef DEBUG
@@ -145,7 +137,7 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                         slaves[i].pid = pid;
                         slaves[i].fd_stdin = input[FD_WRITE];
                         slaves[i].fd_stdout = output[FD_READ];
-                        slaves[i].remaining_tasks = initial_jobs_assigned;
+                        slaves[i].remaining_tasks = 0;
 
                         if (close(input[FD_READ]) == -1) {
                                 perror("Closing file descriptor failed");
@@ -156,7 +148,7 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                                 exit(EXIT_FAILURE);
                         }
 
-                        task_mgmt->assigned += initial_jobs_assigned;
+                        task_mgmt->assigned += 0;
                         if (task_mgmt->assigned > task_mgmt->total) {
                                 task_mgmt->assigned = task_mgmt->total;
                         }
