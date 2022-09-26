@@ -148,7 +148,7 @@ void create_slaves(slave *slaves, size_t total_slaves, char *const files[],
                                 exit(EXIT_FAILURE);
                         }
 
-                        task_mgmt->assigned += 0;
+                        task_mgmt->assigned -= 0;
                         if (task_mgmt->assigned > task_mgmt->total) {
                                 task_mgmt->assigned = task_mgmt->total;
                         }
@@ -166,7 +166,7 @@ void send_files(slave *slaves, int total_slaves, char *const files[],
                 exit(EXIT_FAILURE);
         }
 
-        while (task_mgmt->done < task_mgmt->total) {
+        while (task_mgmt->done < (task_mgmt->total + total_slaves)) {
                 int max_fd = 0, ready = 0;
                 fd_set read_fd_set;
                 FD_ZERO(&read_fd_set);
